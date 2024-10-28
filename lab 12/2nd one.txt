@@ -1,0 +1,183 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_NODES 100
+#define INF -1  // Infinite distance for unvisited nodes
+
+// Structure for an adjacency list node
+typedef struct AdjListNode {
+    int dest;
+    struct AdjListNode* next;
+} AdjListNode;
+
+// Structure for an adjacency list
+typedef struct AdjList {
+    AdjListNode* head;
+} AdjList;
+
+// Graph structure
+typedef struct Graph {
+    int V;
+    AdjList* array;
+} Graph;
+
+// Queue structure for BFS
+typedef struct Queue {
+    int items[MAX_NODES];
+    int front, rear;
+} Queue;
+
+// Function to create a new adjacency list node
+AdjListNode* createNode(int dest) {
+    AdjListNode* newNode = (AdjListNode*)malloc(sizeof(AdjListNode));
+    newNode->dest = dest;
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Function to create a graph with V vertices
+Graph* createGraph(int V) {
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    graph->V = V;
+    graph->array = (AdjList*)malloc(V * sizeof(AdjList));
+
+    for (int i = 0; i < V; ++i)
+        graph->array[i].head = NULL;
+
+    return graph;
+}
+
+// Function to add an edge to the graph
+void addEdge(Graph* graph, int src, int dest) {
+    AdjListNode* newNode = createNode(dest);
+    newNode->next = graph->array[src].head;
+    graph->array[src].head = newNode;
+
+    // Since the graph is undirected, add an edge from dest to src
+    newNode = createNode(src);
+    newNode->next = graph->array[dest].head;
+    graph->array[dest].head = newNode;
+}
+
+// Function to initialize a queue
+Queue* createQueue() {
+    Queue* queue = (Queue*)malloc(sizeof(Queue));
+    queue->front = -1;
+    queue->rear = -1;
+    return queue;
+}
+
+// Check if the queue is empty
+int isEmpty(Queue* queue) {
+    return queue->rear == -1;
+}
+
+// Enqueue a new element
+void enqueue(Queue* queue, int value) {
+    if (queue->rear == MAX_NODES - 1)
+        return;  // Queue is full
+
+    if (queue->front == -1)
+        queue->front = 0;
+
+    queue->rear++;
+    queue->items[queue->rear] = value;
+}
+
+// Dequeue an element
+int dequeue(Queue* queue) {
+    int item;
+    if (isEmpty(queue)) {
+        return -1;
+    } else {
+        item = queue->items[queue->front];
+        queue->front++;
+        if (queue->front > queue->rear) {
+            queue->front = queue->rear = -1;
+        }
+        return item;
+    }
+}
+
+// Function to perform BFS and find the shortest distance from the source
+void BFS(Graph* graph, int startVertex) {
+    // Array to track distances from startVertex
+    int distance[MAX_NODES];
+    for (int i = 0; i < graph->V; i++)
+        distance[i] = INF; // Initialize all distances to infinite
+
+    // Queue for BFS
+    Queue* queue = createQueue();
+
+    // Start from the source vertex
+    distance[startVertex] = 0;
+    enqueue(queue, startVertex);
+
+    printf("BFS traversal order: ");
+    while (!isEmpty(queue)) {
+        int currentVertex = dequeue(queue);
+        printf("%d ", currentVertex);
+
+        // Traverse all adjacent vertices
+        AdjListNode* temp = graph->array[currentVertex].head;
+        while (temp) {
+            int adjVertex = temp->dest;
+            // If not visited (distance is still infinite)
+            if (distance[adjVertex] == INF) {
+                distance[adjVertex] = distance[currentVertex] + 1;
+                enqueue(queue, adjVertex);
+            }
+            temp = temp->next;
+        }
+    }
+    printf("\n");
+
+    // Print shortest distance from the source vertex
+    printf("Shortest distances from vertex %d:\n", startVertex);
+    for (int i = 0; i < graph->V; i++) {
+        printf("Vertex %d: ", i);
+        if (distance[i] != INF)
+            printf("%d\n", distance[i]);
+        else
+            printf("Unreachable\n");
+    }
+}
+
+// Main program
+int main() {
+    int V, edges, src, dest, startVertex;
+
+    printf("Enter the number of vertices: ");
+    scanf("%d", &V);
+
+    Graph* graph = createGraph(V);
+
+    printf("Enter the number of edges: ");
+    scanf("%d", &edges);
+
+    printf("Enter edges (src dest):\n");
+    for (int i = 0; i < edges; i++) {
+        scanf("%d %d", &src, &dest);
+        addEdge(graph, src, dest);
+    }
+
+    printf("Enter the source vertex for BFS: ");
+    scanf("%d", &startVertex);
+
+    // Perform BFS and output traversal order and shortest distances
+    BFS(graph, startVertex);
+
+    // Free memory
+    for (int i = 0; i < V; i++) {
+        AdjListNode* temp = graph->array[i].head;
+        while (temp) {
+            AdjListNode* toDelete = temp;
+            temp = temp->next;
+            free(toDelete);
+        }
+    }
+    free(graph->array);
+    free(graph);
+
+    return 0;
+}

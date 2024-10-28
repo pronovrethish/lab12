@@ -1,0 +1,190 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_NODES 100
+
+// Structure for an adjacency list node
+typedef struct AdjListNode {
+    int dest;
+    struct AdjListNode* next;
+} AdjListNode;
+
+// Structure for an adjacency list
+typedef struct AdjList {
+    AdjListNode* head;
+} AdjList;
+
+// Graph structure
+typedef struct Graph {
+    int V;
+    int isDirected;
+    AdjList* array;
+} Graph;
+
+// Function to create a new adjacency list node
+AdjListNode* createNode(int dest) {
+    AdjListNode* newNode = (AdjListNode*)malloc(sizeof(AdjListNode));
+    newNode->dest = dest;
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Function to create a graph with V vertices
+Graph* createGraph(int V, int isDirected) {
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    graph->V = V;
+    graph->isDirected = isDirected;
+    graph->array = (AdjList*)malloc(V * sizeof(AdjList));
+
+    for (int i = 0; i < V; ++i)
+        graph->array[i].head = NULL;
+
+    return graph;
+}
+
+// Function to add an edge to the graph
+void addEdge(Graph* graph, int src, int dest) {
+    AdjListNode* newNode = createNode(dest);
+    newNode->next = graph->array[src].head;
+    graph->array[src].head = newNode;
+
+    // If the graph is undirected, add an edge from dest to src
+    if (!graph->isDirected) {
+        newNode = createNode(src);
+        newNode->next = graph->array[dest].head;
+        graph->array[dest].head = newNode;
+    }
+}
+
+// a. Check if graph is complete
+int isComplete(Graph* graph) {
+    for (int v = 0; v < graph->V; v++) {
+        int degree = 0;
+        AdjListNode* temp = graph->array[v].head;
+        while (temp) {
+            degree++;
+            temp = temp->next;
+        }
+        if (degree != graph->V - 1)
+            return 0;
+    }
+    return 1;
+}
+
+// b. Degree, in-degree, and out-degree
+int getDegree(Graph* graph, int u) {
+    int degree = 0;
+    AdjListNode* temp = graph->array[u].head;
+    while (temp) {
+        degree++;
+        temp = temp->next;
+    }
+    return degree;
+}
+
+int getOutDegree(Graph* graph, int u) {
+    int outDegree = 0;
+    AdjListNode* temp = graph->array[u].head;
+    while (temp) {
+        outDegree++;
+        temp = temp->next;
+    }
+    return outDegree;
+}
+
+int getInDegree(Graph* graph, int u) {
+    int inDegree = 0;
+    for (int v = 0; v < graph->V; v++) {
+        AdjListNode* temp = graph->array[v].head;
+        while (temp) {
+            if (temp->dest == u)
+                inDegree++;
+            temp = temp->next;
+        }
+    }
+    return inDegree;
+}
+
+// c. Check if there exists a path between two vertices using DFS
+int visited[MAX_NODES];
+
+void DFS(Graph* graph, int v) {
+    visited[v] = 1;
+    AdjListNode* temp = graph->array[v].head;
+    while (temp) {
+        if (!visited[temp->dest])
+            DFS(graph, temp->dest);
+        temp = temp->next;
+    }
+}
+
+int pathExists(Graph* graph, int u, int v) {
+    for (int i = 0; i < graph->V; i++)
+        visited[i] = 0;
+
+    DFS(graph, u);
+    return visited[v];
+}
+
+// Main program
+int main() {
+    int V, isDirected, u, v;
+    printf("Enter number of vertices: ");
+    scanf("%d", &V);
+
+    printf("Enter 1 for directed graph or 0 for undirected graph: ");
+    scanf("%d", &isDirected);
+
+    Graph* graph = createGraph(V, isDirected);
+
+    int edges;
+    printf("Enter the number of edges: ");
+    scanf("%d", &edges);
+
+    printf("Enter edges (src dest):\n");
+    for (int i = 0; i < edges; i++) {
+        int src, dest;
+        scanf("%d %d", &src, &dest);
+        addEdge(graph, src, dest);
+    }
+
+    // Check if graph is complete
+    if (isComplete(graph))
+        printf("The graph is complete.\n");
+    else
+        printf("The graph is not complete.\n");
+
+    // Print degree, in-degree, and out-degree for each node
+    for (int i = 0; i < V; i++) {
+        if (isDirected) {
+            printf("Node %d: In-degree = %d, Out-degree = %d\n", i, getInDegree(graph, i), getOutDegree(graph, i));
+        } else {
+            printf("Node %d: Degree = %d\n", i, getDegree(graph, i));
+        }
+    }
+
+    // Check if a path exists between every pair of vertices
+    printf("Path existence between each pair of vertices:\n");
+    for (u = 0; u < V; u++) {
+        for (v = u + 1; v < V; v++) {
+            if (pathExists(graph, u, v))
+                printf("Path exists between %d and %d\n", u, v);
+            else
+                printf("No path exists between %d and %d\n", u, v);
+        }
+    }
+
+    // Free memory
+    for (int i = 0; i < V; i++) {
+        AdjListNode* temp = graph->array[i].head;
+        while (temp) {
+            AdjListNode* toDelete = temp;
+            temp = temp->next;
+            free(toDelete);
+        }
+    }
+    free(graph->array);
+    free(graph);
+
+    return 0;
+}

@@ -1,0 +1,143 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_NODES 100
+
+// Structure for an adjacency list node
+typedef struct AdjListNode {
+    int dest;
+    struct AdjListNode* next;
+} AdjListNode;
+
+// Structure for an adjacency list
+typedef struct AdjList {
+    AdjListNode* head;
+} AdjList;
+
+// Graph structure
+typedef struct Graph {
+    int V;
+    int isDirected;
+    AdjList* array;
+} Graph;
+
+// Function to create a new adjacency list node
+AdjListNode* createNode(int dest) {
+    AdjListNode* newNode = (AdjListNode*)malloc(sizeof(AdjListNode));
+    newNode->dest = dest;
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Function to create a graph with V vertices
+Graph* createGraph(int V, int isDirected) {
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    graph->V = V;
+    graph->isDirected = isDirected;
+    graph->array = (AdjList*)malloc(V * sizeof(AdjList));
+
+    for (int i = 0; i < V; ++i)
+        graph->array[i].head = NULL;
+
+    return graph;
+}
+
+// Function to add an edge to the graph
+void addEdge(Graph* graph, int src, int dest) {
+    AdjListNode* newNode = createNode(dest);
+    newNode->next = graph->array[src].head;
+    graph->array[src].head = newNode;
+
+    // If the graph is undirected, add an edge from dest to src
+    if (!graph->isDirected) {
+        newNode = createNode(src);
+        newNode->next = graph->array[dest].head;
+        graph->array[dest].head = newNode;
+    }
+}
+
+// DFS Helper function
+void DFSUtil(Graph* graph, int v, int visited[], int* hasCycle, int finishTime[], int* time) {
+    visited[v] = 1;
+    printf("%d ", v);  // Output DFS traversal order
+
+    AdjListNode* temp = graph->array[v].head;
+    while (temp) {
+        int adjVertex = temp->dest;
+        if (!visited[adjVertex]) {
+            DFSUtil(graph, adjVertex, visited, hasCycle, finishTime, time);
+        } else if (visited[adjVertex] == 1) {
+            *hasCycle = 1;  // A cycle is found if we encounter a back edge
+        }
+        temp = temp->next;
+    }
+
+    visited[v] = 2;
+    finishTime[v] = ++(*time);  // Set finishing time
+}
+
+// Function to perform DFS and find cycle in the graph
+void DFS(Graph* graph) {
+    int visited[MAX_NODES] = {0};  // 0 = unvisited, 1 = visiting, 2 = visited
+    int finishTime[MAX_NODES];
+    int time = 0;
+    int hasCycle = 0;
+
+    printf("DFS traversal order: ");
+    for (int i = 0; i < graph->V; i++) {
+        if (visited[i] == 0)
+            DFSUtil(graph, i, visited, &hasCycle, finishTime, &time);
+    }
+    printf("\n");
+
+    // Output cycle detection result
+    if (hasCycle)
+        printf("The graph has a cycle.\n");
+    else
+        printf("The graph does not have a cycle.\n");
+
+    // Output finishing times
+    printf("Finishing times of vertices:\n");
+    for (int i = 0; i < graph->V; i++) {
+        printf("Vertex %d: %d\n", i, finishTime[i]);
+    }
+}
+
+// Main program
+int main() {
+    int V, edges, src, dest, isDirected;
+
+    printf("Enter the number of vertices: ");
+    scanf("%d", &V);
+
+    printf("Enter 1 for directed graph or 0 for undirected graph: ");
+    scanf("%d", &isDirected);
+
+    Graph* graph = createGraph(V, isDirected);
+
+    printf("Enter the number of edges: ");
+    scanf("%d", &edges);
+
+    printf("Enter edges (src dest):\n");
+    for (int i = 0; i < edges; i++) {
+        scanf("%d %d", &src, &dest);
+        addEdge(graph, src, dest);
+    }
+
+    // Perform DFS and output traversal order, cycle detection, and finishing times
+    DFS(graph);
+
+    // Free memory
+    for (int i = 0; i < V; i++) {
+        AdjListNode* temp = graph->array[i].head;
+        while (temp) {
+            AdjListNode* toDelete = temp;
+            temp = temp->next;
+            free(toDelete);
+        }
+    }
+    free(graph->array);
+    free(graph);
+
+    return 0;
+}
